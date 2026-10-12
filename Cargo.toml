@@ -1,0 +1,17 @@
+[package]
+name = "codex-usage-tray"
+version = "0.1.0"
+edition = "2021"
+description = "小窗口 / 托盘显示 Codex 剩余用量（可多显示器任务栏）"
+
+[dependencies]
+chrono = { version = "0.4", features = ["clock"] }
+dirs = "6"
+eframe = { version = "0.30", default-features = false, features = ["default_fonts", "glow"] }
+egui = "0.30"
+muda = "0.15"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tao = "0.30"
+tray-icon = "0.19"
+walkdir = "2"
