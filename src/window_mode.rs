@@ -29,6 +29,8 @@ impl eframe::App for UsageWindow {
         if self.last_refresh.elapsed() >= Duration::from_secs(60) {
             self.refresh();
         }
+        // 5 小时窗口倒计时需定期刷新
+        ctx.request_repaint_after(Duration::from_secs(30));
 
         ctx.send_viewport_cmd(egui::ViewportCommand::Title(self.snap.taskbar_title().into()));
         let level = if self.always_on_top {
@@ -58,12 +60,14 @@ impl eframe::App for UsageWindow {
                         &self.snap.primary_window_label,
                         self.snap.primary_remaining,
                         self.snap.primary_resets_at,
+                        self.snap.primary_window_minutes,
                     );
                     usage_row(
                         ui,
                         &self.snap.secondary_window_label,
                         self.snap.secondary_remaining,
                         self.snap.secondary_resets_at,
+                        self.snap.secondary_window_minutes,
                     );
 
                     ui.add_space(8.0);
@@ -97,9 +101,16 @@ impl eframe::App for UsageWindow {
     }
 }
 
-fn usage_row(ui: &mut egui::Ui, label: &str, remaining: f64, resets_at: Option<i64>) {
+fn usage_row(
+    ui: &mut egui::Ui,
+    label: &str,
+    remaining: f64,
+    resets_at: Option<i64>,
+    window_minutes: i64,
+) {
     let pct = remaining.round() as i32;
-    let reset = usage::format_reset_public(resets_at);
+    let codex_reset = usage::format_reset_codex(resets_at, window_minutes);
+    let clock_reset = usage::format_reset_clock(resets_at);
     ui.horizontal(|ui| {
         ui.label(
             egui::RichText::new(label)
@@ -109,15 +120,20 @@ fn usage_row(ui: &mut egui::Ui, label: &str, remaining: f64, resets_at: Option<i
         );
         ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
             ui.label(
-                egui::RichText::new(format!("重置 {}", reset))
-                    .size(12.0)
-                    .color(egui::Color32::from_rgb(140, 145, 155)),
-            );
-            ui.label(
-                egui::RichText::new(format!("{}%", pct))
-                    .size(22.0)
+                egui::RichText::new(format!("{}%  {}", pct, codex_reset))
+                    .size(18.0)
                     .strong()
                     .color(pct_color(pct)),
+            );
+        });
+    });
+    ui.horizontal(|ui| {
+        ui.add_space(4.0);
+        ui.with_layout(egui::Layout::right_to_left(egui::Align::Min), |ui| {
+            ui.label(
+                egui::RichText::new(format!("{} 重置", clock_reset))
+                    .size(11.0)
+                    .color(egui::Color32::from_rgb(120, 125, 135)),
             );
         });
     });
@@ -136,8 +152,8 @@ fn pct_color(pct: i32) -> egui::Color32 {
 pub fn run() -> eframe::Result<()> {
     let options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
-            .with_inner_size([320.0, 168.0])
-            .with_min_inner_size([280.0, 150.0])
+            .with_inner_size([320.0, 198.0])
+            .with_min_inner_size([280.0, 180.0])
             .with_resizable(true),
         persist_window: true,
         ..Default::default()
